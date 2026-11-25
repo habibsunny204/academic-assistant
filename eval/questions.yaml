@@ -1,0 +1,598 @@
+# DIU Academic Assistant — evaluation question set
+#
+# HOW TO USE
+#   python cli.py eval-check                      # validate against the index
+#   python cli.py evaluate --retrieval-only       # retrieval + relevance floor, no LLM
+#   python cli.py evaluate                        # full run (needs GROQ_API_KEY)
+#   python cli.py calibrate --file eval/questions.yaml   # tune the floor on the dev split
+#
+# FIELDS
+#   id, split (dev|test), type (answerable|unanswerable), question
+#   gold_docs        substrings of the filename(s) that contain the answer
+#   evidence         exact text the right passage must contain (whitespace and case
+#                    are ignored). Empty = any passage from a gold document counts.
+#   answer_facts     every fact the answer must state; each is a list of acceptable
+#                    forms. Times, dates, ordinals, punctuation and citation markers
+#                    are normalised before matching.
+#   reference_answer what a correct answer says, for the report and for reviewers
+#   difficulty       lookup | paraphrase | multi-part | adversarial | near-domain | off-topic
+#   reviewed         set to true once a person has checked the item against the source
+#
+# SPLITS
+#   dev  is for tuning (e.g. `calibrate`). Report results on test only: numbers
+#   measured on the questions used for tuning overstate how well the system works.
+#
+# PROVENANCE OF THE GOLD ANSWERS
+#   Class routine facts were cross-checked against the PDF with pdfplumber, a
+#   different parser from the PyMuPDF pipeline that produced the index (room,
+#   course, section, teacher, weekday and time slot by column position: 18/18
+#   confirmed). Notice facts were read from the scanned image, not from OCR text.
+#   Form facts are the DOCX text. They are still marked reviewed: false until a
+#   person at DIU has checked them.
+#
+# EXTENDING
+#   Add questions whenever documents are added. `python cli.py eval-feedback`
+#   turns answers rated in the web UI into draft items to complete here.
+
+version: 1
+description: >
+  Questions over the Fall 2026 CSE class routine, the Fall 2026 late registration
+  notice and the Summer 2026 improvement examination form, plus questions the
+  corpus cannot answer.
+
+items:
+  # --------------------------------------------------------------------------
+  # Late registration notice (scanned PDF, OCR)
+  # --------------------------------------------------------------------------
+  - id: reg-01
+    split: dev
+    type: answerable
+    category: Registration
+    difficulty: lookup
+    question: When is the last date for late registration for Fall 2026?
+    gold_docs: [notice-for-late-registration-for-fall-2026]
+    evidence: ["The last date for late registration is 17 September 2026"]
+    answer_facts:
+      - ["17 September 2026", "September 17, 2026", "17/09/2026", "2026-09-17"]
+    reference_answer: 17 September 2026, with a late fine of Tk. 500.
+    reviewed: false
+
+  - id: reg-02
+    split: test
+    type: answerable
+    category: Registration
+    difficulty: paraphrase
+    question: How much do I have to pay as a fine if I register late but before the 17th?
+    gold_docs: [notice-for-late-registration-for-fall-2026]
+    evidence: ["with a late fine of Tk. 500/="]
+    answer_facts:
+      - ["500"]
+    reference_answer: Tk. 500.
+    reviewed: false
+
+  - id: reg-03
+    split: test
+    type: answerable
+    category: Registration
+    difficulty: lookup
+    question: Until what date can students still register for Fall 2026, and what is the fine then?
+    gold_docs: [notice-for-late-registration-for-fall-2026]
+    evidence: ["Registration will be allowed till 24 September 2026 with a late fine of Tk. 1000/="]
+    answer_facts:
+      - ["24 September 2026", "September 24, 2026", "24/09/2026", "2026-09-24"]
+      - ["1000", "1,000"]
+    reference_answer: Until 24 September 2026, with a late fine of Tk. 1000.
+    reviewed: false
+
+  - id: reg-04
+    split: test
+    type: answerable
+    category: Registration
+    difficulty: paraphrase
+    question: What happens to students who miss the final registration deadline?
+    gold_docs: [notice-for-late-registration-for-fall-2026]
+    evidence: ["students will not be allowed to attend classes"]
+    answer_facts:
+      - ["not be allowed to attend classes", "not allowed to attend classes", "cannot attend classes", "can't attend classes", "not be able to attend classes", "not permitted to attend classes"]
+    reference_answer: Registration is no longer permitted, and students without course registration are not allowed to attend classes.
+    reviewed: false
+
+  - id: reg-05
+    split: dev
+    type: answerable
+    category: Registration
+    difficulty: lookup
+    question: On what date was the late registration notice for Fall 2026 issued?
+    gold_docs: [notice-for-late-registration-for-fall-2026]
+    evidence: ["Date: 12 September 2026"]
+    answer_facts:
+      - ["12 September 2026", "September 12, 2026", "12/09/2026", "2026-09-12"]
+    reference_answer: 12 September 2026.
+    reviewed: false
+
+  - id: reg-06
+    split: test
+    type: answerable
+    category: Registration
+    difficulty: lookup
+    question: Who issued the notice about late registration for Fall 2026?
+    gold_docs: [notice-for-late-registration-for-fall-2026]
+    evidence: ["Registrar"]
+    answer_facts:
+      - ["Registrar"]
+    reference_answer: The Registrar of Daffodil International University.
+    reviewed: false
+
+  # --------------------------------------------------------------------------
+  # Improvement examination form (DOCX)
+  # --------------------------------------------------------------------------
+  - id: exam-01
+    split: dev
+    type: answerable
+    category: Examination
+    difficulty: lookup
+    question: For which grades is the improvement examination applicable?
+    gold_docs: [improvement-examination-form-summer-2026]
+    evidence: ["Improvement Examination is applicable if your grade is B or Less"]
+    answer_facts:
+      - ["B or less", "B or lower", "B or below", "grade B or less"]
+    reference_answer: If the grade obtained is B or less.
+    reviewed: false
+
+  - id: exam-02
+    split: test
+    type: answerable
+    category: Examination
+    difficulty: paraphrase
+    question: Can I use one improvement exam form for two courses?
+    gold_docs: [improvement-examination-form-summer-2026]
+    evidence: ["THIS FORM IS APPLICABLE FOR ONE (1) COURSE ONLY"]
+    answer_facts:
+      - ["one course", "1 course", "one (1) course", "a single course", "one course only", "only one course"]
+    reference_answer: No. The form is applicable for one course only.
+    reviewed: false
+
+  - id: exam-03
+    split: test
+    type: answerable
+    category: Examination
+    difficulty: lookup
+    question: When does the improvement examination form become valid?
+    gold_docs: [improvement-examination-form-summer-2026]
+    evidence: ["THIS FORM IS VALID ONLY AFTER CLEARANCE FROM ACCOUNTS"]
+    answer_facts:
+      - ["clearance from accounts", "clearance from the accounts", "cleared by accounts", "accounts clearance", "clearance from accounts and finance"]
+    reference_answer: Only after clearance from Accounts.
+    reviewed: false
+
+  - id: exam-04
+    split: dev
+    type: answerable
+    category: Examination
+    difficulty: lookup
+    question: Who gives the academic approval on the improvement examination form?
+    gold_docs: [improvement-examination-form-summer-2026]
+    evidence: ["Department Head"]
+    answer_facts:
+      - ["Department Head", "head of the department", "head of department", "departmental head"]
+    reference_answer: The Department Head, with signature and date.
+    reviewed: false
+
+  - id: exam-05
+    split: test
+    type: answerable
+    category: Examination
+    difficulty: multi-part
+    question: What details about the course teacher must be filled in on the improvement exam form?
+    gold_docs: [improvement-examination-form-summer-2026]
+    evidence: ["Course Teacher's Employee ID"]
+    answer_facts:
+      - ["employee id", "employee ID number"]
+      - ["initial", "initials"]
+      - ["signature"]
+    reference_answer: Course teacher name, initial, department, employee ID and signature.
+    reviewed: false
+
+  - id: exam-06
+    split: test
+    type: answerable
+    category: Examination
+    difficulty: lookup
+    question: Which semester is the improvement examination form for?
+    gold_docs: [improvement-examination-form-summer-2026]
+    evidence: ["Summer 2026"]
+    answer_facts:
+      - ["Summer 2026"]
+    reference_answer: Summer 2026 (B.Sc. in CSE).
+    reviewed: false
+
+  - id: exam-07
+    split: test
+    type: answerable
+    category: Examination
+    difficulty: paraphrase
+    question: What am I supposed to do with the admit card slip from the improvement exam form?
+    gold_docs: [improvement-examination-form-summer-2026]
+    evidence: ["The student is strongly advised to preserve this slip for future reference"]
+    answer_facts:
+      - ["preserve", "keep", "retain", "save"]
+    reference_answer: Preserve it for future reference.
+    reviewed: false
+
+  # --------------------------------------------------------------------------
+  # CSE class routine, Fall 2026 (15-page table PDF)
+  # --------------------------------------------------------------------------
+  - id: rt-01
+    split: dev
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: Where and when is CSE315 section 67_B held on Saturday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE315 section 67_B is scheduled on Saturday from 11:30-01:00 in room KT-201 taught by AS"]
+    answer_facts:
+      - ["KT-201"]
+      - ["11:30-01:00"]
+    reference_answer: Room KT-201, 11:30-01:00.
+    reviewed: false
+
+  - id: rt-02
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: adversarial
+    notes: The same section also meets on Saturday at 11:30-01:00; the answer must pick Sunday.
+    question: What time does CSE315 section 67_B meet on Sunday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE315 section 67_B is scheduled on Sunday from 08:30-10:00 in room KT-201 taught by AS"]
+    answer_facts:
+      - ["08:30-10:00"]
+    reference_answer: 08:30-10:00 in room KT-201.
+    reviewed: false
+
+  - id: rt-03
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: Who teaches CSE438 section 64_E on Tuesday, and in which room?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE438 section 64_E is scheduled on Tuesday from 08:30-10:00 in room KT-221 taught by HHP"]
+    answer_facts:
+      - ["HHP"]
+      - ["KT-221"]
+    reference_answer: HHP, in room KT-221 (08:30-10:00).
+    reviewed: false
+
+  - id: rt-04
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: What time is MAT211 section 70_H on Wednesday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course MAT211 section 70_H is scheduled on Wednesday from 08:30-10:00 in room ANX1-202 taught by MPL"]
+    answer_facts:
+      - ["08:30-10:00"]
+    reference_answer: 08:30-10:00 in room ANX1-202.
+    reviewed: false
+
+  - id: rt-05
+    split: dev
+    type: answerable
+    category: Class Routine
+    difficulty: paraphrase
+    question: cse 223 68_E thursday which room
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE223 section 68_E is scheduled on Thursday from 08:30-10:00 in room KT-318(A) taught by NTS"]
+    answer_facts:
+      - ["KT-318(A)"]
+    reference_answer: KT-318(A), 08:30-10:00.
+    reviewed: false
+
+  - id: rt-06
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: Which room and time slot does CSE113 section 72_K have on Monday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE113 section 72_K is scheduled on Monday from 02:30-04:00 in room KT-216 taught by JRY"]
+    answer_facts:
+      - ["KT-216"]
+      - ["02:30-04:00"]
+    reference_answer: Room KT-216, 02:30-04:00.
+    reviewed: false
+
+  - id: rt-07
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: Who is the teacher for CSE326 section 66_C on Thursday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE326 section 66_C is scheduled on Thursday from 02:30-04:00 in room KT-318(B) taught by MNB"]
+    answer_facts:
+      - ["MNB"]
+    reference_answer: MNB (02:30-04:00, room KT-318(B)).
+    reviewed: false
+
+  - id: rt-08
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: Where does ENG102 section 72_H meet on Wednesday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course ENG102 section 72_H is scheduled on Wednesday from 08:30-10:00 in room ANX1-210 taught by IMT"]
+    answer_facts:
+      - ["ANX1-210"]
+    reference_answer: Room ANX1-210, 08:30-10:00.
+    reviewed: false
+
+  - id: rt-09
+    split: dev
+    type: answerable
+    category: Class Routine
+    difficulty: multi-part
+    question: For the CSE121 section 71_J class on Sunday, give me the room, the time and the teacher.
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE121 section 71_J is scheduled on Sunday from 01:00-02:30 in room KT-201 taught by MTF"]
+    answer_facts:
+      - ["KT-201"]
+      - ["01:00-02:30"]
+      - ["MTF"]
+    reference_answer: Room KT-201, 01:00-02:30, taught by MTF.
+    reviewed: false
+
+  - id: rt-10
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: Which room is ACT327 section 67_I in on Wednesday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course ACT327 section 67_I is scheduled on Wednesday from 11:30-01:00 in room G1-026 taught by FNT_2"]
+    answer_facts:
+      - ["G1-026"]
+    reference_answer: G1-026, 11:30-01:00.
+    reviewed: false
+
+  - id: rt-11
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    question: Which computer lab is CSE316 section 66_F in on Sunday?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE316 section 66_F is scheduled on Sunday from 02:30-04:00 in room KT-501(A) (COM LAB) taught by SBA"]
+    answer_facts:
+      - ["KT-501(A)"]
+    reference_answer: KT-501(A) (COM LAB), 02:30-04:00.
+    reviewed: false
+
+  - id: rt-12
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: paraphrase
+    question: Who takes the Wednesday lab for CSE112 section 73_S?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE112 section 73_S is scheduled on Wednesday from 11:30-01:00 in room KT-501(B) (COM LAB) taught by TAK"]
+    answer_facts:
+      - ["TAK"]
+    reference_answer: TAK, in KT-501(B) (COM LAB), 11:30-01:00.
+    reviewed: false
+
+  - id: rt-13
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: multi-part
+    notes: Needs two passages from different pages of the routine.
+    question: On which days does ZH teach CSE431 section 65_C?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence:
+      - "Course CSE431 section 65_C is scheduled on Sunday from 10:00-11:30 in room KT-201 taught by ZH"
+      - "Course CSE431 section 65_C is scheduled on Tuesday from 02:30-04:00 in room KT-208 taught by ZH"
+    answer_facts:
+      - ["Sunday"]
+      - ["Tuesday"]
+    reference_answer: Sunday (10:00-11:30, KT-201) and Tuesday (02:30-04:00, KT-208).
+    reviewed: false
+
+  - id: rt-14
+    split: dev
+    type: answerable
+    category: Class Routine
+    difficulty: multi-part
+    notes: Needs two passages from different pages of the routine.
+    question: When does CSE454 section 65_M meet during the week?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence:
+      - "Course CSE454 section 65_M is scheduled on Saturday from 01:00-02:30 in room KT-306 taught by DAA"
+      - "Course CSE454 section 65_M is scheduled on Sunday from 11:30-01:00 in room KT-510 (COM LAB) taught by DAA"
+    answer_facts:
+      - ["Saturday"]
+      - ["01:00-02:30"]
+      - ["Sunday"]
+      - ["11:30-01:00"]
+    reference_answer: Saturday 01:00-02:30 (KT-306) and Sunday 11:30-01:00 (KT-510, COM LAB).
+    reviewed: false
+
+  - id: rt-15
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: paraphrase
+    question: Which class is in room KT-318(A) on Saturday from 10:00 to 11:30?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: ["Course CSE123 section 71_D is scheduled on Saturday from 10:00-11:30 in room KT-318(A) taught by DAN"]
+    answer_facts:
+      - ["CSE123"]
+      - ["71_D", "71 D"]
+    reference_answer: CSE123 section 71_D, taught by DAN.
+    reviewed: false
+
+  - id: rt-16
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    notes: The version appears in every routine passage's context header.
+    question: Which version of the CSE class routine is currently in use?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: []
+    answer_facts:
+      - ["V1.1", "version 1.1"]
+    reference_answer: Version V1.1 (Fall 2026).
+    reviewed: false
+
+  - id: rt-17
+    split: test
+    type: answerable
+    category: Class Routine
+    difficulty: lookup
+    notes: The effective date is document metadata, shown to the model in each source header.
+    question: From which date is the Fall 2026 CSE class routine effective?
+    gold_docs: [cse-class-routine-fall-2026]
+    evidence: []
+    answer_facts:
+      - ["9 September 2026", "09 September 2026", "September 9, 2026", "2026-09-09", "09/09/2026"]
+    reference_answer: 9 September 2026.
+    reviewed: false
+
+  # --------------------------------------------------------------------------
+  # Unanswerable: nothing in the corpus answers these. Refusing is correct.
+  # --------------------------------------------------------------------------
+  - id: un-01
+    split: dev
+    type: unanswerable
+    difficulty: near-domain
+    question: What is the DIU hostel fee for 2026?
+    reviewed: false
+
+  - id: un-02
+    split: dev
+    type: unanswerable
+    difficulty: near-domain
+    question: Who is the Vice Chancellor of Daffodil International University?
+    reviewed: false
+
+  - id: un-03
+    split: dev
+    type: unanswerable
+    difficulty: off-topic
+    question: What is the capital of France?
+    reviewed: false
+
+  - id: un-04
+    split: dev
+    type: unanswerable
+    difficulty: adversarial
+    notes: The form exists but states no submission deadline.
+    question: What is the last date to submit the improvement examination form for Summer 2026?
+    reviewed: false
+
+  - id: un-05
+    split: dev
+    type: unanswerable
+    difficulty: adversarial
+    notes: No classes are scheduled on Friday in the routine.
+    question: Who teaches CSE315 section 67_B on Friday?
+    reviewed: false
+
+  - id: un-06
+    split: test
+    type: unanswerable
+    difficulty: near-domain
+    question: What is the tuition fee per credit for the B.Sc. in CSE program?
+    reviewed: false
+
+  - id: un-07
+    split: test
+    type: unanswerable
+    difficulty: near-domain
+    question: What are the library opening hours at Daffodil Smart City?
+    reviewed: false
+
+  - id: un-08
+    split: test
+    type: unanswerable
+    difficulty: near-domain
+    question: When does the Fall 2026 midterm examination start?
+    reviewed: false
+
+  - id: un-09
+    split: test
+    type: unanswerable
+    difficulty: adversarial
+    notes: The notice covers Fall 2026 only.
+    question: What is the late registration fine for Spring 2027?
+    reviewed: false
+
+  - id: un-10
+    split: test
+    type: unanswerable
+    difficulty: adversarial
+    notes: CSE999 does not exist in the routine.
+    question: Where is CSE999 section 99_Z held on Saturday?
+    reviewed: false
+
+  - id: un-11
+    split: test
+    type: unanswerable
+    difficulty: near-domain
+    question: What is the minimum CGPA required to graduate from DIU?
+    reviewed: false
+
+  - id: un-12
+    split: test
+    type: unanswerable
+    difficulty: near-domain
+    question: How do I apply for a DIU merit scholarship?
+    reviewed: false
+
+  - id: un-13
+    split: test
+    type: unanswerable
+    difficulty: near-domain
+    question: What time does the DIU transport bus leave Dhanmondi in the morning?
+    reviewed: false
+
+  - id: un-14
+    split: test
+    type: unanswerable
+    difficulty: adversarial
+    notes: The form says when it is applicable, not what the improvement exam costs.
+    question: How much is the fee for an improvement examination?
+    reviewed: false
+
+  - id: un-15
+    split: test
+    type: unanswerable
+    difficulty: adversarial
+    notes: The routine lists teacher initials only, never full names or phone numbers.
+    question: What is the phone number of the teacher HHP?
+    reviewed: false
+
+  - id: un-16
+    split: test
+    type: unanswerable
+    difficulty: off-topic
+    question: How do I renew my passport in Bangladesh?
+    reviewed: false
+
+  - id: un-17
+    split: test
+    type: unanswerable
+    difficulty: off-topic
+    question: How do I apply for a student visa to Canada?
+    reviewed: false
+
+  - id: un-18
+    split: test
+    type: unanswerable
+    difficulty: near-domain
+    question: When is the DIU convocation in 2026?
+    reviewed: false

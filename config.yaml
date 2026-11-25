@@ -1,0 +1,89 @@
+# DIU Academic Assistant - ingestion configuration
+paths:
+  sources: "Sources"
+  registry_db: "data/registry/registry.sqlite"
+  vector_dir: "data/vectordb"
+  quarantine: "data/quarantine"
+  app_db: "data/app/app.sqlite"      # conversations and feedback (web UI)
+  frontend_dist: "frontend/dist"     # built React app served by the API
+
+embedding:
+  # Recorded with every vector. Changing model or dim requires a full re-index;
+  # the store refuses to mix incompatible vectors.
+  model: "BAAI/bge-small-en-v1.5"
+  dim: 384
+  batch_size: 32
+  # bge models want this prefix on *queries* only, not on documents.
+  query_prefix: "Represent this sentence for searching relevant passages: "
+  normalize: true
+
+ocr:
+  backend: "tesseract"          # tesseract | none
+  tesseract_cmd: "C:/Program Files/Tesseract-OCR/tesseract.exe"
+  tessdata_dir: "models/tessdata"
+  langs: "eng"                  # use "eng+ben" for Bangla notices
+  dpi: 300
+  # A page with fewer than this many characters in its text layer is treated
+  # as scanned and sent to OCR.
+  min_text_chars_per_page: 120
+
+chunking:
+  target_chars: 1000
+  overlap_chars: 150
+  min_chunk_chars: 80
+  table_rows_per_chunk: 12
+
+quality:
+  # A document yielding less than this after all extraction attempts is
+  # quarantined, never indexed.
+  min_doc_chars: 200
+
+retrieval:
+  candidates: 30          # hybrid search casts wide for recall
+  final_k: 5              # passages handed to the answer model
+  rerank: true
+  # Chosen by benchmark on this corpus (CPU, 30 candidates, 15 questions):
+  #   BAAI/bge-reranker-base               median 26.5s, target fact at rank 2
+  #   cross-encoder/ms-marco-MiniLM-L6-v2  median  3.7s, target fact at rank 1
+  # MiniLM also separates answerable from unanswerable questions far more
+  # clearly. English-only.
+  reranker_model: "cross-encoder/ms-marco-MiniLM-L6-v2"
+  # Below this relevance the LLM is never called; the assistant abstains.
+  # Calibrated for MiniLM on 7 answerable and 7 unanswerable questions: the
+  # weakest real question scored 0.234 and the strongest junk 0.002, except
+  # "What is the DIU hostel fee for 2026?" at 0.96 (left to the model's own
+  # INSUFFICIENT_CONTEXT sentinel). No real question lost, 6 of 7 junk stopped.
+  # The score scale
+  # belongs to the reranker, so changing reranker_model means re-running
+  # python cli.py calibrate.
+  min_relevance: 0.05
+  # Recency only breaks near-ties; relevance stays the dominant signal.
+  recency_weight: 0.05
+
+answer:
+  provider: "groq"
+  # Groq retired its Llama chat models; run `python cli.py models` to see what
+  # is served. gpt-oss-120b is open-weight (like Llama) and, tested on this
+  # corpus, cited correctly and refused the adversarial "Spring 2027" question.
+  model: "openai/gpt-oss-120b"
+  temperature: 0.1        # near-deterministic: this is lookup, not writing
+  # Reasoning models think before answering and that thinking counts towards
+  # max_tokens. "low" effort is enough for lookup questions and keeps answers
+  # around a second. Remove both lines for a non-reasoning model.
+  reasoning_effort: "low"
+  include_reasoning: false
+  max_tokens: 2000
+  verify_grounding: true
+  # Cosine similarity below which a cited sentence is flagged as weakly
+  # supported by the source it cites.
+  min_support: 0.35
+
+api:
+  host: "127.0.0.1"       # localhost only; there is no user authentication yet
+  port: 8000
+  max_upload_mb: 50
+  # When non-empty, uploading and re-indexing require the header
+  # X-Admin-Token: <value>. Set this before exposing the server beyond localhost.
+  admin_token: ""
+  cors_origins:
+    - "http://localhost:5173"   # Vite dev server

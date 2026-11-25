@@ -1,0 +1,11 @@
+data/vectordb/
+data/registry/
+data/quarantine/
+models/tessdata/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+data/app/
+frontend/node_modules/
+frontend/dist/
